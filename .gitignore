@@ -9,3 +9,4 @@ archkeeper.test
 .vscode/
 go.work
 go.work.sum
+.zed/
