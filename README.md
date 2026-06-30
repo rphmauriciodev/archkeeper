@@ -1,34 +1,34 @@
-# 🛡️ archkeeper
+# archkeeper
 
-**archkeeper** é um utilitário CLI moderno, rápido e elegante escrito em Go para gerenciar dotfiles e pacotes instalados (`pacman` e `AUR`) no Arch Linux. 
+archkeeper is a modern, fast, and elegant CLI tool written in Go to manage dotfiles and installed packages (both native pacman and AUR) on Arch Linux.
 
-O `archkeeper` automatiza o rastreamento dos seus arquivos de configuração, o backup dos seus pacotes instalados e a sincronização com o Git, permitindo replicar todo o seu ecossistema pessoal em qualquer outra máquina com facilidade.
-
----
-
-## ✨ Recursos
-
-- 🔗 **Symlink Facilitado**: Rastreie qualquer configuração (arquivo ou pasta) com um comando. O `archkeeper` move o arquivo para o repositório e cria um link simbólico (symlink) no lugar.
-- 📦 **Backup do Pacman e AUR**: Exporta automaticamente a lista de pacotes nativos instalados de forma explícita (`pacman -Qqen`) e pacotes instalados pelo AUR (`pacman -Qqem`).
-- 🤖 **Restauração Inteligente**: Recria links simbólicos que estejam faltando em uma nova máquina (com backup automático `.bak` se encontrar arquivos preexistentes conflitantes) e compara/instala os pacotes ausentes via `pacman` ou `yay`/`paru`.
-- 🐙 **Sincronização Git**: Realiza `add`, `commit` automático com marcação de data/hora e executa `push` direto para o repositório remoto.
-- 🎨 **Visual Moderno**: Interface construída usando Cobra e Lipgloss com estilo inspirado nas cores do Arch Linux.
+It automates tracking configuration files, backing up package lists, and synchronizing changes with Git, making it simple to replicate your personal environment on any other machine.
 
 ---
 
-## 🚀 Instalação
+## Features
 
-Como o projeto está escrito em Go, você pode compilá-lo localmente e colocá-lo no seu PATH:
+- Easy Symlinking: Track any file or directory with a single command. archkeeper moves the file to the repository and creates a symlink in its original place.
+- Pacman & AUR Backup: Automatically exports list of explicitly installed native packages (via pacman -Qqen) and foreign/AUR packages (via pacman -Qqem).
+- Safe Restoration: Recreates missing symbolic links on a new machine (creating automatic .bak backups if conflicting files exist) and compares and installs missing packages via pacman or an AUR helper (yay/paru).
+- Git Integration: Stages changes, commits them with automatic timestamped messages, and pushes to a remote repository.
+- Sleek Terminal UI: Clean, styled terminal output inspired by the Arch Linux theme, built using Cobra and Lipgloss.
+
+---
+
+## Installation
+
+Since the project is written in Go, you can compile it locally and place it in your path:
 
 ```bash
-# Compilar o binário
+# Compile the binary
 go build -o archkeeper ./cmd/archkeeper/main.go
 
-# Mover para o PATH do sistema (exemplo)
+# Move to system path (example)
 sudo mv archkeeper /usr/local/bin/
 ```
 
-Ou instalar usando o próprio Go:
+Or install it directly via Go:
 
 ```bash
 go install ./cmd/archkeeper
@@ -36,54 +36,54 @@ go install ./cmd/archkeeper
 
 ---
 
-## 🛠️ Como Funciona a Sincronização?
+## How Synchronization Works
 
-O `archkeeper` divide suas configurações em duas partes para viabilizar o uso em múltiplos computadores:
+archkeeper splits your configuration into two parts for cross-machine portability:
 
-1. **Configuração Local (`~/.config/archkeeper/config.yaml`)**:
-   Salva apenas onde o repositório de dotfiles está clonado no seu computador atual (ex: `~/dotfiles`). Cada máquina pode clonar o repositório em diretórios diferentes.
-2. **Manifesto Compartilhado (`<dotfiles_dir>/archkeeper.yaml`)**:
-   Fica salvo dentro da própria pasta de dotfiles e é enviado para o Git. Ele guarda a lista de todos os arquivos que devem ser criados links simbólicos e configurações de pacotes.
+1. Local Configuration (~/.config/archkeeper/config.yaml):
+   Stores only the path to where the dotfiles repository is cloned on the current machine (e.g., ~/dotfiles). This allows different computers to clone the repo to different paths.
+2. Shared Manifest (<dotfiles_dir>/archkeeper.yaml):
+   Stored inside the dotfiles folder itself and versioned in Git. It tracks which files should be symlinked and package backup configurations.
 
 ---
 
-## 📂 Guia Rápido de Uso
+## Command Reference
 
-### 1. Inicializando
-Crie o repositório local e gere as configurações iniciais:
+### 1. Initialize
+Set up the local config and dotfiles repository path:
 ```bash
 archkeeper init
 ```
-*Ele perguntará onde você quer colocar a pasta de dotfiles (padrão: `~/dotfiles`) e inicializará o Git automaticamente se a pasta ainda não for um repositório Git.*
+This prompts for a destination path (defaults to ~/dotfiles) and initializes a Git repository if it does not already exist.
 
-### 2. Adicionando Arquivos para Rastreamento
-Adicione os arquivos ou diretórios de configurações que você deseja rastrear:
+### 2. Track Files
+Add a configuration file or directory to track:
 ```bash
 archkeeper add ~/.zshrc
 archkeeper add ~/.config/i3
 ```
-*O `archkeeper` moverá esses arquivos para dentro de seu diretório de dotfiles e criará links simbólicos apontando para lá de forma transparente.*
+archkeeper will move these targets into your dotfiles directory and create relative symbolic links pointing to them.
 
-### 3. Visualizando o Status
-Veja quais arquivos estão sendo rastreados, o estado dos pacotes locais e as informações do repositório Git:
+### 3. Check Status
+View details of tracked files, package status, and git repository details:
 ```bash
 archkeeper status
 ```
 
-### 4. Fazendo Backup (Salvar e Subir para o Git)
-Gere a lista atualizada de pacotes instalados, realize o commit das alterações locais de dotfiles e envie para o Git remoto:
+### 4. Backup & Sync
+Export installed package lists, commit changes, and push to a remote repository:
 ```bash
 archkeeper backup
 ```
-*Se você configurar um git remote na sua pasta de dotfiles (`git remote add origin ...`), o `archkeeper backup` enviará automaticamente as alterações para a nuvem.*
+If you set up a Git remote in your dotfiles repository (git remote add origin <url>), this command will automatically push the changes online.
 
-### 5. Restaurando em uma nova máquina
-Ao configurar um novo sistema Arch Linux:
-1. Instale o `archkeeper` na nova máquina.
-2. Clone seu repositório de dotfiles em qualquer pasta (ex: `~/dotfiles`).
-3. Execute `archkeeper init` e aponte para essa pasta.
-4. Execute o comando de restauração:
+### 5. Restore on a New Machine
+To set up a new Arch Linux installation:
+1. Install archkeeper on the new machine.
+2. Clone your dotfiles repository (e.g., to ~/dotfiles).
+3. Run archkeeper init and point it to the cloned directory.
+4. Run the restore command:
    ```bash
    archkeeper restore
    ```
-*O `archkeeper` lerá o manifesto `archkeeper.yaml`, recriará todos os links simbólicos e perguntará de forma interativa se você deseja instalar os pacotes ausentes via `pacman` e o seu AUR helper instalado (`yay`/`paru`).*
+archkeeper will read the archkeeper.yaml manifest, recreate all symlinks, and prompt you to install missing native and AUR packages using pacman and your installed helper (yay/paru).

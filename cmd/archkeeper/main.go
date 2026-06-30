@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// UI Theme Styles using Lipgloss
 var (
 	archBlue = lipgloss.Color("#1793D1")
 	successG = lipgloss.Color("#A6E22E")
@@ -62,7 +61,7 @@ func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "archkeeper",
 		Short: "archkeeper is a dotfiles & pacman/AUR package list manager for Arch Linux",
-		Long: styleTitle.Render(" ARCHKEEPER ") + "\nUma ferramenta moderna e elegante em Go para gerenciar seus dotfiles e pacotes no Arch Linux.",
+		Long:  styleTitle.Render(" ARCHKEEPER ") + "\nUma ferramenta moderna e elegante em Go para gerenciar seus dotfiles e pacotes no Arch Linux.",
 	}
 
 	rootCmd.AddCommand(initCmd())
@@ -77,13 +76,12 @@ func main() {
 	}
 }
 
-// initCmd sets up local configuration and repository manifest.
 func initCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",
 		Short: "Inicializa o repositório de dotfiles e a configuração local",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(styleHeader.Render("✨ Inicializando o Archkeeper..."))
+			fmt.Println(styleHeader.Render("Inicializando o Archkeeper..."))
 
 			reader := bufio.NewReader(os.Stdin)
 			home, err := os.UserHomeDir()
@@ -100,14 +98,12 @@ func initCmd() *cobra.Command {
 				input = defaultDotDir
 			}
 
-			// Clean and resolve path
 			resolvedDir, err := config.ResolvePath(input)
 			if err != nil {
 				fmt.Println(styleError.Render("❌ Caminho inválido:"), err)
 				return
 			}
 
-			// 1. Save Local Config
 			localCfg := &config.LocalConfig{DotfilesDir: input}
 			localConfigPath, err := config.SaveLocalConfig(localCfg)
 			if err != nil {
@@ -115,7 +111,6 @@ func initCmd() *cobra.Command {
 				return
 			}
 
-			// 2. Save Shared Manifest inside dotfiles dir if not already existing
 			manifestPath := filepath.Join(resolvedDir, config.ManifestFileName)
 			manifestCreated := false
 			if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
@@ -128,7 +123,6 @@ func initCmd() *cobra.Command {
 				manifestCreated = true
 			}
 
-			// 3. Initialize Git if not exists
 			gitInitialized := false
 			if !git.IsGitRepo(resolvedDir) {
 				if err := git.InitGitRepo(resolvedDir); err != nil {
@@ -138,7 +132,6 @@ func initCmd() *cobra.Command {
 				}
 			}
 
-			// Print beautiful success summary card
 			cardContent := fmt.Sprintf(
 				"Configuração Local: %s\nRepositório Dotfiles: %s\n\n",
 				styleSuccess.Render(localConfigPath),
@@ -163,7 +156,6 @@ func initCmd() *cobra.Command {
 	}
 }
 
-// addCmd tracks a file or folder in the dotfiles repository.
 func addCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add [caminho_do_arquivo]",
@@ -172,21 +164,17 @@ func addCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			srcPath := args[0]
 
-			// Load config
 			localCfg, _, err := config.LoadLocalConfig()
 			if err != nil {
 				fmt.Println(styleError.Render("❌ Erro:"), err)
 				return
 			}
 
-			// Load manifest or make default
 			manifest, _, err := config.LoadManifest(localCfg.DotfilesDir)
 			if err != nil {
-				// manifest might not exist yet, let's create a default one
 				manifest = config.DefaultRepoManifest()
 			}
 
-			// Resolve source to check it and find relative path to home
 			srcAbs, err := config.ResolvePath(srcPath)
 			if err != nil {
 				fmt.Println(styleError.Render("❌ Erro ao resolver caminho do arquivo:"), err)
@@ -199,7 +187,6 @@ func addCmd() *cobra.Command {
 				return
 			}
 
-			// Compute relative path inside repository
 			var targetRelPath string
 			if strings.HasPrefix(srcAbs, home) {
 				rel, err := filepath.Rel(home, srcAbs)
@@ -209,7 +196,6 @@ func addCmd() *cobra.Command {
 					targetRelPath = rel
 				}
 			} else {
-				// If outside home, place in 'root/'
 				targetRelPath = filepath.Join("root", srcAbs)
 			}
 
@@ -226,7 +212,6 @@ func addCmd() *cobra.Command {
 	}
 }
 
-// backupCmd exports packages lists and pushes updates to git.
 func backupCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "backup",
@@ -244,7 +229,7 @@ func backupCmd() *cobra.Command {
 				return
 			}
 
-			fmt.Println(styleHeader.Render("📦 Salvando pacotes do Arch Linux..."))
+			fmt.Println(styleHeader.Render("Salvando pacotes do Arch Linux..."))
 			pacmanPath, aurPath, err := packages.ExportPackages(localCfg, manifest)
 			if err != nil {
 				fmt.Printf(styleWarn.Render("⚠️ Falha ao exportar listas de pacotes: %v\n"), err)
@@ -253,7 +238,7 @@ func backupCmd() *cobra.Command {
 				fmt.Printf("✓ AUR list:    %s\n", styleSuccess.Render(aurPath))
 			}
 
-			fmt.Println(styleHeader.Render("\n🚀 Sincronizando com o Git..."))
+			fmt.Println(styleHeader.Render("\nSincronizando com o Git..."))
 			commitMsg := fmt.Sprintf("archkeeper: auto-backup %s", time.Now().Format("2006-01-02 15:04:05"))
 
 			pushed, err := git.CommitAndPush(localCfg.DotfilesDir, commitMsg)
@@ -271,7 +256,6 @@ func backupCmd() *cobra.Command {
 	}
 }
 
-// restoreCmd recreates symlinks and installs missing packages.
 func restoreCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "restore",
@@ -289,7 +273,7 @@ func restoreCmd() *cobra.Command {
 				return
 			}
 
-			fmt.Println(styleHeader.Render("🔗 Restaurando links simbólicos..."))
+			fmt.Println(styleHeader.Render("Restaurando links simbólicos..."))
 			restored, skipped, err := dotfiles.RestoreLinks(localCfg, manifest)
 			if err != nil {
 				fmt.Println(styleError.Render("❌ Erro ao restaurar links simbólicos:"), err)
@@ -303,11 +287,10 @@ func restoreCmd() *cobra.Command {
 				fmt.Printf("• Ignorado/Backup: %s\n", styleMuted.Render(file))
 			}
 
-			// Check missing packages
-			fmt.Println(styleHeader.Render("\n📦 Verificando pacotes ausentes..."))
+			fmt.Println(styleHeader.Render("\nVerificando pacotes ausentes..."))
 			missingNative, missingAur, err := packages.GetMissingPackages(localCfg, manifest)
 			if err != nil {
-				fmt.Printf(styleWarn.Render("⚠️ Falha ao verificar pacotes ausentes: %v\n"), err)
+				fmt.Printf(styleWarn.Render("Falha ao verificar pacotes ausentes: %v\n"), err)
 				return
 			}
 
@@ -354,7 +337,6 @@ func restoreCmd() *cobra.Command {
 	}
 }
 
-// statusCmd lists tracked files, backup packages status, git repo status.
 func statusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
@@ -382,7 +364,6 @@ func statusCmd() *cobra.Command {
 				styleSuccess.Render(resolvedRepoDir),
 			)
 
-			// Add tracked files list info
 			cardContent += fmt.Sprintf(
 				"%s %d arquivos\n",
 				styleHeader.Render("Arquivos Rastreados:"),
@@ -392,7 +373,6 @@ func statusCmd() *cobra.Command {
 				cardContent += fmt.Sprintf("  • ~/%s -> %s\n", f.Source, f.Target)
 			}
 
-			// Add packages backup info
 			cardContent += fmt.Sprintf(
 				"\n%s %v\n",
 				styleHeader.Render("Backup de Pacotes:"),
@@ -412,7 +392,6 @@ func statusCmd() *cobra.Command {
 				}
 			}
 
-			// Add git status info
 			gitRepo := git.IsGitRepo(resolvedRepoDir)
 			cardContent += fmt.Sprintf(
 				"\n%s %v\n",

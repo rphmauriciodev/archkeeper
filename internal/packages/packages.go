@@ -11,7 +11,6 @@ import (
 	"archkeeper/internal/config"
 )
 
-// ExportPackages queries pacman for native and AUR packages and saves them to the configured files.
 func ExportPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) (string, string, error) {
 	if !manifest.Packages.BackupEnabled {
 		return "", "", fmt.Errorf("packages backup is disabled in manifest")
@@ -22,7 +21,6 @@ func ExportPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) (str
 		return "", "", fmt.Errorf("failed to resolve dotfiles dir: %w", err)
 	}
 
-	// 1. Export Native Packages: pacman -Qqen
 	nativePkgs, err := runCommand("pacman", "-Qqen")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to list native packages: %w", err)
@@ -33,7 +31,6 @@ func ExportPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) (str
 		return "", "", fmt.Errorf("failed to write native package list: %w", err)
 	}
 
-	// 2. Export AUR Packages: pacman -Qqem
 	aurPkgs, err := runCommand("pacman", "-Qqem")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to list AUR packages: %w", err)
@@ -47,15 +44,12 @@ func ExportPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) (str
 	return nativePath, aurPath, nil
 }
 
-// GetMissingPackages compares the backed-up package list files with currently installed packages
-// and returns the lists of missing packages.
 func GetMissingPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) ([]string, []string, error) {
 	dotfilesAbs, err := config.ResolvePath(cfg.DotfilesDir)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// 1. Get current packages
 	currentNativeStr, err := runCommand("pacman", "-Qqen")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list current native packages: %w", err)
@@ -68,7 +62,6 @@ func GetMissingPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) 
 	currentNative := makeSet(strings.Split(strings.TrimSpace(currentNativeStr), "\n"))
 	currentAur := makeSet(strings.Split(strings.TrimSpace(currentAurStr), "\n"))
 
-	// 2. Read backed-up packages
 	nativePath := filepath.Join(dotfilesAbs, manifest.Packages.PacmanFile)
 	aurPath := filepath.Join(dotfilesAbs, manifest.Packages.AurFile)
 
@@ -89,7 +82,7 @@ func GetMissingPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) 
 		backedUpAur := strings.Split(strings.TrimSpace(string(data)), "\n")
 		for _, pkg := range backedUpAur {
 			pkg = strings.TrimSpace(pkg)
-			if pkg != "" && !currentAur[pkg] && !currentNative[pkg] { // Check both to avoid double installing
+			if pkg != "" && !currentAur[pkg] && !currentNative[pkg] {
 				missingAur = append(missingAur, pkg)
 			}
 		}
@@ -98,7 +91,6 @@ func GetMissingPackages(cfg *config.LocalConfig, manifest *config.RepoManifest) 
 	return missingNative, missingAur, nil
 }
 
-// InstallPackages executes the package manager to install the list of missing packages.
 func InstallPackages(packages []string, isAur bool) error {
 	if len(packages) == 0 {
 		return nil
@@ -108,7 +100,6 @@ func InstallPackages(packages []string, isAur bool) error {
 	var args []string
 
 	if isAur {
-		// Detect AUR Helper: yay or paru
 		helper := detectAURHelper()
 		if helper == "" {
 			return fmt.Errorf("no AUR helper (yay or paru) detected. Please install packages manually:\n%s", strings.Join(packages, " "))
@@ -134,7 +125,6 @@ func InstallPackages(packages []string, isAur bool) error {
 	return nil
 }
 
-// Helper to run a command and capture output
 func runCommand(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	var stdout, stderr bytes.Buffer
@@ -148,7 +138,6 @@ func runCommand(name string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-// Helper to convert string slice to a boolean set
 func makeSet(slice []string) map[string]bool {
 	set := make(map[string]bool)
 	for _, s := range slice {
@@ -160,7 +149,6 @@ func makeSet(slice []string) map[string]bool {
 	return set
 }
 
-// Helper to check if a helper is in PATH
 func detectAURHelper() string {
 	helpers := []string{"yay", "paru"}
 	for _, h := range helpers {

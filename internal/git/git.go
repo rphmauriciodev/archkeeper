@@ -11,7 +11,6 @@ import (
 	"archkeeper/internal/config"
 )
 
-// IsGitRepo checks if the dotfiles directory contains a .git folder.
 func IsGitRepo(dotfilesDir string) bool {
 	resolved, err := config.ResolvePath(dotfilesDir)
 	if err != nil {
@@ -22,7 +21,6 @@ func IsGitRepo(dotfilesDir string) bool {
 	return err == nil && info.IsDir()
 }
 
-// InitGitRepo initializes a new git repository in the dotfiles directory.
 func InitGitRepo(dotfilesDir string) error {
 	resolved, err := config.ResolvePath(dotfilesDir)
 	if err != nil {
@@ -40,7 +38,6 @@ func InitGitRepo(dotfilesDir string) error {
 	return nil
 }
 
-// CommitAndPush stages all files, commits with the given message, and pushes if a remote is configured.
 func CommitAndPush(dotfilesDir string, commitMessage string) (bool, error) {
 	resolved, err := config.ResolvePath(dotfilesDir)
 	if err != nil {
@@ -51,40 +48,32 @@ func CommitAndPush(dotfilesDir string, commitMessage string) (bool, error) {
 		return false, fmt.Errorf("directory is not a git repository. Run 'git init' inside %s first", resolved)
 	}
 
-	// 1. Git add
 	if err := runGitCmd(resolved, "add", "-A"); err != nil {
 		return false, fmt.Errorf("failed to stage files: %w", err)
 	}
 
-	// Check if there are changes to commit (git diff-index --quiet HEAD --)
-	// Note: diff-index returns exit status 1 if there are changes, 0 if clean, and 128 if no commits yet (empty repo).
 	hasChanges := true
 	if err := runGitCmd(resolved, "diff-index", "--quiet", "HEAD", "--"); err == nil {
 		hasChanges = false
 	}
 
 	if !hasChanges {
-		// No changes to commit, return gracefully
 		return false, nil
 	}
 
-	// 2. Git commit
 	if err := runGitCmd(resolved, "commit", "-m", commitMessage); err != nil {
 		return false, fmt.Errorf("failed to commit changes: %w", err)
 	}
 
-	// 3. Check for remote and push
 	hasRemote, err := hasGitRemote(resolved)
 	if err != nil {
 		return true, fmt.Errorf("committed changes locally, but failed checking remote: %w", err)
 	}
 
 	if hasRemote {
-		// Run git push
-		// We'll try to push current branch. First find current branch name.
 		branch, err := getCurrentBranch(resolved)
 		if err != nil {
-			branch = "main" // fallback
+			branch = "main"
 		}
 		if err := runGitCmd(resolved, "push", "origin", branch); err != nil {
 			return true, fmt.Errorf("committed changes locally, but failed to push to origin: %w", err)
@@ -114,12 +103,10 @@ func hasGitRemote(dir string) (bool, error) {
 	if err := cmd.Run(); err != nil {
 		return false, err
 	}
-	// If output is not empty, there is at least one remote
 	remotes := strings.TrimSpace(stdout.String())
 	if remotes == "" {
 		return false, nil
 	}
-	// Check if "origin" is one of them
 	for _, r := range strings.Split(remotes, "\n") {
 		if strings.TrimSpace(r) == "origin" {
 			return true, nil

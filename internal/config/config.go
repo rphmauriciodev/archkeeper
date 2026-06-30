@@ -40,13 +40,11 @@ const (
 	ManifestFileName       = "archkeeper.yaml"
 )
 
-// ResolvePath replaces "~" and environment variables with full paths.
 func ResolvePath(path string) (string, error) {
 	if path == "" {
 		return "", nil
 	}
 
-	// Handle ~/ prefix
 	if strings.HasPrefix(path, "~") {
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -55,13 +53,11 @@ func ResolvePath(path string) (string, error) {
 		path = filepath.Join(home, path[1:])
 	}
 
-	// Expand env vars like $HOME
 	path = os.ExpandEnv(path)
 
 	return filepath.Clean(path), nil
 }
 
-// DefaultRepoManifest returns a standard starting manifest.
 func DefaultRepoManifest() *RepoManifest {
 	return &RepoManifest{
 		Packages: PackageConfig{
@@ -73,7 +69,6 @@ func DefaultRepoManifest() *RepoManifest {
 	}
 }
 
-// LoadLocalConfig loads the local configuration from ~/.config/archkeeper/config.yaml.
 func LoadLocalConfig() (*LocalConfig, string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -83,7 +78,6 @@ func LoadLocalConfig() (*LocalConfig, string, error) {
 	configDir := filepath.Join(home, DefaultLocalConfigDir)
 	configPath := filepath.Join(configDir, DefaultLocalConfigFile)
 
-	// If file doesn't exist, return nil/error so CLI can guide the user to run init
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return nil, configPath, fmt.Errorf("local configuration not found. Please run 'archkeeper init'")
 	}
@@ -101,7 +95,6 @@ func LoadLocalConfig() (*LocalConfig, string, error) {
 	return &cfg, configPath, nil
 }
 
-// SaveLocalConfig writes the local configuration file.
 func SaveLocalConfig(cfg *LocalConfig) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -127,7 +120,6 @@ func SaveLocalConfig(cfg *LocalConfig) (string, error) {
 	return configPath, nil
 }
 
-// LoadManifest loads the repo manifest (archkeeper.yaml) from the dotfiles directory.
 func LoadManifest(dotfilesDir string) (*RepoManifest, string, error) {
 	resolvedDir, err := ResolvePath(dotfilesDir)
 	if err != nil {
@@ -152,7 +144,6 @@ func LoadManifest(dotfilesDir string) (*RepoManifest, string, error) {
 	return &manifest, manifestPath, nil
 }
 
-// SaveManifest writes the repo manifest (archkeeper.yaml) to the dotfiles directory.
 func SaveManifest(dotfilesDir string, manifest *RepoManifest) (string, error) {
 	resolvedDir, err := ResolvePath(dotfilesDir)
 	if err != nil {
